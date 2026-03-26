@@ -1,0 +1,27 @@
+{
+  "name": "@Test/api",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@Test/auth": "*",
+    "@Test/db": "*",
+    "@Test/env": "*",
+    "@ts-rest/core": "^3.52.1",
+    "better-auth": "^1.5.5",
+    "dotenv": "^17.2.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@Test/config": "*",
+    "@types/express": "^5.0.6",
+    "typescript": "^5"
+  }
+}
