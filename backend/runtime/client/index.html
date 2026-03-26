@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LabelBox – Data Annotation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22253a;
+    --border: #2e3250; --accent: #6c63ff; --accent2: #4f46e5;
+    --danger: #ef4444; --success: #22c55e; --warn: #f59e0b;
+    --text: #e2e8f0; --muted: #64748b; --white: #fff;
+    --radius: 8px; --font: 'Inter', system-ui, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+  #root { min-height: 100vh; }
+
+  /* Layout */
+  .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+  .navbar { display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px; background: var(--surface);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .brand { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .page { flex: 1; padding: 32px 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer;
+    border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--surface2); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Forms */
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-group label { font-size: 13px; color: var(--muted); }
+  .form-control { padding: 10px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); font-size: 14px; width: 100%; }
+  .form-control:focus { outline: none; border-color: var(--accent); }
+  .form-control::placeholder { color: var(--muted); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; }
+  .card-title { font-size: 16px; font-weight: 600; }
+
+  /* Grid */
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Auth pages */
+  .auth-wrap { display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg); padding: 24px; }
+  .auth-box { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
+  .auth-logo { text-align: center; font-size: 24px; font-weight: 800;
+    color: var(--accent); margin-bottom: 8px; }
+  .auth-sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .auth-switch { text-align: center; font-size: 13px; color: var(--muted); margin-top: 20px; }
+  .auth-switch span { color: var(--accent); cursor: pointer; }
+
+  /* Project card */
+  .project-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; cursor: pointer; transition: all .15s; }
+  .project-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .project-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .project-card p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .project-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px;
+    background: var(--surface2); color: var(--muted); }
+
+  /* Page header */
+  .page-header { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .page-title { font-size: 22px; font-weight: 700; }
+  .breadcrumb { display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .breadcrumb span { cursor: pointer; color: var(--accent); }
+
+  /* Image list */
+  .image-list { display: flex; flex-direction: column; gap: 8px; }
+  .image-item { display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); cursor: pointer; transition: all .15s; }
+  .image-item:hover, .image-item.active { border-color: var(--accent); background: var(--surface2); }
+  .image-item-left { display: flex; align-items: center; gap: 10px; }
+  .image-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: var(--surface2); }
+  .image-name { font-size: 13px; font-weight: 500; }
+  .image-status { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ===== ANNOTATION WORKSPACE ===== */
+  .workspace { display: grid; grid-template-columns: 260px 1fr 220px;
+    gap: 0; height: calc(100vh - 56px); overflow: hidden; }
+  .panel { background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden; }
+  .panel-right { border-right: none; border-left: 1px solid var(--border); }
+  .panel-header { padding: 12px 14px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted);
+    border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 10px; }
+
+  .canvas-area { background: #0a0c14; display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start; overflow: hidden; position: relative; }
+  .canvas-toolbar { width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; flex-wrap: wrap; }
+  .canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: flex-start;
+    justify-content: center; padding: 20px; }
+  canvas { cursor: crosshair; display: block; }
+
+  /* Class chips */
+  .class-chip { display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: var(--radius); margin-bottom: 6px;
+    border: 2px solid transparent; cursor: pointer; font-size: 13px;
+    transition: all .12s; }
+  .class-chip.selected { border-color: var(--accent); background: rgba(108,99,255,.12); }
+  .class-chip:hover { background: var(--surface2); }
+  .class-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .class-name { flex: 1; margin-left: 8px; }
+  .class-count { font-size: 11px; color: var(--muted); margin-right: 6px; }
+  .class-del { color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+    padding: 2px 4px; border-radius: 4px; }
+  .class-del:hover { color: var(--danger); background: rgba(239,68,68,.1); }
+
+  /* Box list */
+  .box-item { padding: 8px 10px; border-radius: var(--radius); margin-bottom: 5px;
+    border: 1px solid var(--border); font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: all .12s; }
+  .box-item:hover { border-color: var(--accent); }
+  .box-item.selected { border-color: var(--accent); background: rgba(108,99,255,.1); }
+  .box-item-del { margin-left: auto; color: var(--muted); cursor: pointer; }
+  .box-item-del:hover { color: var(--danger); }
+
+  /* Nav strip */
+  .img-nav { display: flex; align-items: center; gap: 8px; }
+  .nav-counter { font-size: 12px; color: var(--muted); min-width: 70px; text-align: center; }
+
+  /* Toast */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; display: flex;
+    flex-direction: column; gap: 8px; z-index: 9999; }
+  .toast { padding: 12px 18px; border-radius: var(--radius); font-size: 13px;
+    font-weight: 500; animation: slideIn .2s ease; }
+  .toast-success { background: var(--success); color: #fff; }
+  .toast-error { background: var(--danger); color: #fff; }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 12px;
+    padding: 32px; text-align: center; cursor: pointer; transition: all .15s; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(108,99,255,.05); }
+  .upload-zone p { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+  /* Misc */
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 14px; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .text-muted { color: var(--muted); font-size: 13px; }
+  .add-class-row { display: flex; gap: 8px; margin-top: 10px; }
+  .add-class-row .form-control { flex: 1; padding: 7px 10px; font-size: 13px; }
+  .scrollable { overflow-y: auto; }
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const API = "http://localhost:5000/api";
+
+const CLASS_COLORS = [
+  "#ef4444","#f59e0b","#22c55e","#3b82f6","#a855f7",
+  "#ec4899","#14b8a6","#f97316","#84cc16","#06b6d4",
+];
+
+// ── API HELPERS ──────────────────────────────────────────────────────────────
+const request = async (method, path, body, token) => {
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || "Request failed");
+  return data;
+};
+
+const uploadFiles = async (projectId, files, token) => {
+  const form = new FormData();
+  [...files].forEach(f => form.append("images", f));
+  const res = await fetch(`${API}/projects/${projectId}/images`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Upload failed");
+  return data;
+};
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+const ToastContext = React.createContext(null);
+const useToast = () => React.useContext(ToastContext);
+
+const ToastProvider = ({ children }) => {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type = "success") => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+  }, []);
+  return (
+    <ToastContext.Provider value={add}>
+      {children}
+      <div className="toast-wrap">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>{t.msg}</div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  );
+};
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+const AuthPage = ({ onLogin }) => {
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const toast = useToast();
+
+  const handle = async e => {
+    e.preventDefault();
+    setLoading(true); setErr("");
+    try {
+      const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
+      const body = mode === "login"
+        ? { email: form.email, password: form.password }
+        : form;
+      const data = await request("POST", endpoint, body);
+      toast("Welcome, " + data.name + "!");
+      onLogin(data.token, data);
+    } catch (e) { setErr(e.message); }
+    setLoading(false);
+  };
+
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-box">
+        <div className="auth-logo">📦 LabelBox</div>
+        <div className="auth-sub">AI Training Data Annotation Tool</div>
+        {mode === "register" && (
+          <div className="form-group">
+            <label>Name</label>
+            <input className="form-control" placeholder="Your name" value={form.name} onChange={set("name")} />
+          </div>
+        )}
+        <div className="form-group">
+          <label>Email</label>
+          <input className="form-control" type="email" placeholder="you@email.com" value={form.email} onChange={set("email")} />
+        </div>
+        <div className="form-group">
+          <label>Password</label>
+          <input className="form-control" type="password" placeholder="••••••••" value={form.password} onChange={set("password")} />
+        </div>
+        {err && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{err}</p>}
+        <button className="btn btn-primary" style={{ width: "100%" }} onClick={handle} disabled={loading}>
+          {loading ? "Please wait…" : mode === "login" ? "Sign In" : "Create Account"}
+        </button>
+        <div className="auth-switch">
+          {mode === "login" ? <>No account? <span onClick={() => setMode("register")}>Register</span></> : <>Have an account? <span onClick={() => setMode("login")}>Sign In</span></>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── PROJECTS LIST ─────────────────────────────────────────────────────────────
+const ProjectsPage = ({ token, onOpen }) => {
+  const [projects, setProjects] = useState([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: "", description: "" });
+  const [loading, setLoading] = useState(true);
+  const toast = useToast();
+
+  const load = async () => {
+    try {
+      const data = await request("GET", "/projects", null, token);
+      setProjects(data);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.name.trim()) return;
+    try {
+      await request("POST", "/projects", form, token);
+      setForm({ name: "", description: "" });
+      setShowCreate(false);
+      load();
+      toast("Project created!");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const del = async (id, e) => {
+    e.stopPropagation();
+    if (!confirm("Delete this project and all its data?")) return;
+    try {
+      await request("DELETE", `/projects/${id}`, null, token);
+      load();
+      toast("Project deleted");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div className="page-title">My Projects</div>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Project</button>
+      </div>
+
+      {showCreate && (
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header">
+            <div className="card-title">New Project</div>
+            <button className="btn btn-outline btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
+          </div>
+          <div className="form-group">
+            <label>Project Name *</label>
+            <input className="form-control" placeholder="e.g. Vehicle Detection Dataset" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label>Description</label>
+            <input className="form-control" placeholder="Optional description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+          <button className="btn btn-primary" onClick={create}>Create Project</button>
+        </div>
+      )}
+
+      {loading ? <div className="empty">Loading…</div> : projects.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">🗂️</div>
+          <div>No projects yet. Create one to get started.</div>
+        </div>
+      ) : (
+        <div className="grid-3">
+          {projects.map(p => (
+            <div key={p.id} className="project-card" onClick={() => onOpen(p)}>
+              <h3>{p.name}</h3>
+              <p>{p.description || "No description"}</p>
+              <div className="project-meta">
+                <span className="badge">🖼 {p._count?.images ?? 0} images</span>
+                <span className="badge">🏷 {p._count?.annotations ?? 0} boxes</span>
+                <span className="badge">🔤 {p._count?.classes ?? 0} classes</span>
+              </div>
+              <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+                <button className="btn btn-danger btn-sm" onClick={e => del(p.id, e)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── PROJECT DETAIL (images + upload) ─────────────────────────────────────────
+const ProjectPage = ({ token, project, onAnnotate, onBack }) => {
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef();
+  const toast = useToast();
+
+  const load = async () => {
+    try {
+      const data = await request("GET", `/projects/${project.id}/images`, null, token);
+      setImages(data);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const doUpload = async files => {
+    if (!files || !files.length) return;
+    const images = [...files].filter(f => f.type.startsWith("image/"));
+    if (!images.length) { toast("No image files found", "error"); return; }
+    setUploading(true);
+    try {
+      await uploadFiles(project.id, images, token);
+      toast(`Uploaded ${images.length} image(s)`);
+      load();
+    } catch (e) { toast(e.message, "error"); }
+    setUploading(false);
+  };
+
+  const del = async (id, e) => {
+    e.stopPropagation();
+    if (!confirm("Delete this image and its annotations?")) return;
+    try {
+      await request("DELETE", `/projects/${project.id}/images/${id}`, null, token);
+      load(); toast("Image deleted");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const exportProject = async () => {
+    const res = await fetch(`${API}/projects/${project.id}/export`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) { toast("Export failed", "error"); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${project.name}-export.zip`;
+    a.click(); URL.revokeObjectURL(url);
+    toast("Export downloaded!");
+  };
+
+  const annotated = images.filter(i => i._count?.annotations > 0).length;
+
+  return (
+    <div className="page">
+      <div className="breadcrumb">
+        <span onClick={onBack}>← Projects</span> / {project.name}
+      </div>
+      <div className="page-header">
+        <div>
+          <div className="page-title">{project.name}</div>
+          <div className="text-muted" style={{ marginTop: 4 }}>
+            {images.length} images · {annotated} annotated
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-success" onClick={exportProject}>⬇ Export ZIP</button>
+          <button className="btn btn-primary" onClick={() => fileRef.current.click()} disabled={uploading}>
+            {uploading ? "Uploading…" : "⬆ Upload Images"}
+          </button>
+          <input ref={fileRef} type="file" multiple accept="image/*" onChange={e => doUpload(e.target.files)} />
+        </div>
+      </div>
+
+      <div
+        className={`upload-zone ${drag ? "dragover" : ""}`}
+        style={{ marginBottom: 24 }}
+        onClick={() => fileRef.current.click()}
+        onDragOver={e => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={e => { e.preventDefault(); setDrag(false); doUpload(e.dataTransfer.files); }}
+      >
+        <div style={{ fontSize: 32 }}>🖼️</div>
+        <p>Drag & drop images or a folder here, or click to browse</p>
+        <p style={{ fontSize: 12, marginTop: 4 }}>JPG, PNG, WebP supported</p>
+      </div>
+
+      {loading ? <div className="empty">Loading…</div> : images.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">📂</div>
+          <div>No images yet. Upload some to start labelling.</div>
+        </div>
+      ) : (
+        <div className="image-list">
+          {images.map((img, idx) => (
+            <div key={img.id} className="image-item" onClick={() => onAnnotate(img, images)}>
+              <div className="image-item-left">
+                <img
+                  className="image-thumb"
+                  src={`http://localhost:5000${img.filePath}`}
+                  alt=""
+                  onError={e => e.target.style.visibility = "hidden"}
+                />
+                <div>
+                  <div className="image-name">{img.fileName}</div>
+                  <div className="image-status">
+                    {img._count?.annotations > 0
+                      ? `✅ ${img._count.annotations} box${img._count.annotations !== 1 ? "es" : ""}`
+                      : "⬜ Not annotated"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="badge">#{idx + 1}</span>
+                <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); onAnnotate(img, images); }}>Label</button>
+                <button className="btn btn-danger btn-sm" onClick={e => del(img.id, e)}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── ANNOTATION WORKSPACE ─────────────────────────────────────────────────────
+const AnnotationWorkspace = ({ token, project, initialImage, allImages, onBack }) => {
+  const [imgIdx, setImgIdx] = useState(allImages.findIndex(i => i.id === initialImage.id));
+  const currentImg = allImages[imgIdx];
+
+  const [classes, setClasses] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [newClass, setNewClass] = useState("");
+  const [annotations, setAnnotations] = useState([]);
+  const [selectedAnnId, setSelectedAnnId] = useState(null);
+
+  const [imgNaturalSize, setImgNaturalSize] = useState({ w: 0, h: 0 });
+  const [scale, setScale] = useState(1);
+  const [drawing, setDrawing] = useState(false);
+  const [startPt, setStartPt] = useState(null);
+  const [currentRect, setCurrentRect] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const canvasRef = useRef();
+  const overlayRef = useRef();
+  const imgRef = useRef();
+  const toast = useToast();
+
+  // Load classes once
+  useEffect(() => {
+    request("GET", `/projects/${project.id}/classes`, null, token)
+      .then(d => {
+        setClasses(d);
+        if (d.length) setSelectedClassId(d[0].id);
+      }).catch(() => {});
+  }, []);
+
+  // Load annotations when image changes
+  useEffect(() => {
+    if (!currentImg) return;
+    setAnnotations([]);
+    setSelectedAnnId(null);
+    request("GET", `/projects/${project.id}/images/${currentImg.id}/annotations`, null, token)
+      .then(setAnnotations).catch(() => {});
+  }, [imgIdx, currentImg?.id]);
+
+  // Redraw canvas when annotations/scale change
+  useEffect(() => { drawCanvas(); }, [annotations, currentRect, selectedAnnId, scale, classes]);
+
+  const colorForClass = (classId) => {
+    const idx = classes.findIndex(c => c.id === classId);
+    return CLASS_COLORS[idx % CLASS_COLORS.length] || "#6c63ff";
+  };
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imgNaturalSize.w) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    annotations.forEach(ann => {
+      const isSelected = ann.id === selectedAnnId;
+      const color = colorForClass(ann.classId);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.setLineDash(isSelected ? [6, 3] : []);
+      ctx.strokeRect(ann.xMin * scale, ann.yMin * scale, ann.width * scale, ann.height * scale);
+
+      // Label background
+      const cls = classes.find(c => c.id === ann.classId);
+      const label = cls ? cls.className : "?";
+      ctx.font = `bold ${12}px Inter, sans-serif`;
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = color;
+      ctx.fillRect(ann.xMin * scale, ann.yMin * scale - 18, tw + 10, 18);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(label, ann.xMin * scale + 5, ann.yMin * scale - 4);
+    });
+
+    // In-progress rect
+    if (currentRect) {
+      ctx.strokeStyle = "#6c63ff";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+      ctx.fillStyle = "rgba(108,99,255,0.08)";
+      ctx.fillRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+    }
+  };
+
+  const onImageLoad = (e) => {
+    const { naturalWidth: nw, naturalHeight: nh } = e.target;
+    setImgNaturalSize({ w: nw, h: nh });
+    const displayW = Math.min(nw, 900);
+    const s = displayW / nw;
+    setScale(s);
+    const canvas = canvasRef.current;
+    if (canvas) { canvas.width = nw * s; canvas.height = nh * s; }
+  };
+
+  const getPt = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const onMouseDown = (e) => {
+    if (!selectedClassId) { toast("Select a class first", "error"); return; }
+    const pt = getPt(e);
+    setStartPt(pt);
+    setDrawing(true);
+    setCurrentRect({ x: pt.x, y: pt.y, w: 0, h: 0 });
+  };
+
+  const onMouseMove = (e) => {
+    if (!drawing || !startPt) return;
+    const pt = getPt(e);
+    setCurrentRect({
+      x: Math.min(startPt.x, pt.x),
+      y: Math.min(startPt.y, pt.y),
+      w: Math.abs(pt.x - startPt.x),
+      h: Math.abs(pt.y - startPt.y),
+    });
+  };
+
+  const onMouseUp = async (e) => {
+    if (!drawing) return;
+    setDrawing(false);
+    if (!currentRect || currentRect.w < 5 || currentRect.h < 5) {
+      setCurrentRect(null); return;
+    }
+    const rect = currentRect;
+    setCurrentRect(null);
+
+    // Convert to natural image coordinates
+    const xMin = rect.x / scale;
+    const yMin = rect.y / scale;
+    const width = rect.w / scale;
+    const height = rect.h / scale;
+
+    setSaving(true);
+    try {
+      const ann = await request("POST",
+        `/projects/${project.id}/images/${currentImg.id}/annotations`,
+        { xMin, yMin, width, height, classId: selectedClassId }, token);
+      setAnnotations(a => [...a, ann]);
+      toast("Box saved");
+    } catch (ex) { toast(ex.message, "error"); }
+    setSaving(false);
+  };
+
+  const deleteAnn = async (id) => {
+    const ann = annotations.find(a => a.id === id);
+    if (!ann) return;
+    try {
+      await request("DELETE",
+        `/projects/${project.id}/images/${currentImg.id}/annotations/${id}`,
+        null, token);
+      setAnnotations(a => a.filter(x => x.id !== id));
+      if (selectedAnnId === id) setSelectedAnnId(null);
+      toast("Box deleted");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const clearAll = async () => {
+    if (!confirm("Clear all boxes on this image?")) return;
+    try {
+      await request("DELETE",
+        `/projects/${project.id}/images/${currentImg.id}/annotations`,
+        null, token);
+      setAnnotations([]); setSelectedAnnId(null);
+      toast("Cleared");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const addClass = async () => {
+    const name = newClass.trim();
+    if (!name) return;
+    try {
+      const cls = await request("POST", `/projects/${project.id}/classes`, { className: name }, token);
+      setClasses(c => [...c, cls]);
+      setSelectedClassId(cls.id);
+      setNewClass("");
+      toast("Class added");
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const deleteClass = async (id) => {
+    try {
+      await request("DELETE", `/projects/${project.id}/classes/${id}`, null, token);
+      setClasses(c => c.filter(x => x.id !== id));
+      if (selectedClassId === id) setSelectedClassId(classes.find(c => c.id !== id)?.id || null);
+    } catch (e) { toast(e.message, "error"); }
+  };
+
+  const goTo = (delta) => {
+    const next = imgIdx + delta;
+    if (next < 0 || next >= allImages.length) return;
+    setImgIdx(next);
+  };
+
+  if (!currentImg) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      {/* Navbar */}
+      <div className="navbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button className="btn btn-outline btn-sm" onClick={onBack}>← Back</button>
+          <div className="brand">📦 LabelBox</div>
+          <span style={{ color: "var(--muted)", fontSize: 13 }}>{project.name}</span>
+        </div>
+        <div className="img-nav">
+          <button className="btn btn-outline btn-sm" onClick={() => goTo(-1)} disabled={imgIdx === 0}>‹ Prev</button>
+          <span className="nav-counter">{imgIdx + 1} / {allImages.length}</span>
+          <button className="btn btn-outline btn-sm" onClick={() => goTo(1)} disabled={imgIdx === allImages.length - 1}>Next ›</button>
+        </div>
+        <div style={{ fontSize: 13, color: "var(--muted)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {currentImg.fileName}
+        </div>
+      </div>
+
+      {/* Workspace */}
+      <div className="workspace">
+        {/* Left Panel: Classes */}
+        <div className="panel">
+          <div className="panel-header">Classes</div>
+          <div className="panel-body">
+            {classes.length === 0 && (
+              <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 10 }}>
+                Add a class to start labelling
+              </div>
+            )}
+            {classes.map((cls, idx) => (
+              <div
+                key={cls.id}
+                className={`class-chip ${selectedClassId === cls.id ? "selected" : ""}`}
+                onClick={() => setSelectedClassId(cls.id)}
+              >
+                <div className="class-dot" style={{ background: CLASS_COLORS[idx % CLASS_COLORS.length] }} />
+                <div className="class-name">{cls.className}</div>
+                <span className="class-count">#{idx}</span>
+                <span className="class-del" onClick={e => { e.stopPropagation(); deleteClass(cls.id); }}>×</span>
+              </div>
+            ))}
+            <div className="add-class-row">
+              <input
+                className="form-control"
+                placeholder="Add class…"
+                value={newClass}
+                onChange={e => setNewClass(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addClass()}
+              />
+              <button className="btn btn-primary btn-sm" onClick={addClass}>+</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Canvas */}
+        <div className="canvas-area">
+          <div className="canvas-toolbar">
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              {selectedClassId
+                ? <>Drawing: <b style={{ color: "var(--accent)" }}>{classes.find(c => c.id === selectedClassId)?.className}</b></>
+                : <span style={{ color: "var(--warn)" }}>⚠ Select a class</span>
+              }
+            </span>
+            {saving && <span style={{ fontSize: 12, color: "var(--muted)" }}>Saving…</span>}
+            <span style={{ marginLeft: "auto" }} />
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              Scale: {Math.round(scale * 100)}%
+            </span>
+            <button className="btn btn-outline btn-sm" onClick={() => setScale(s => Math.min(s + 0.1, 3))}>+</button>
+            <button className="btn btn-outline btn-sm" onClick={() => setScale(s => Math.max(s - 0.1, 0.2))}>−</button>
+            <button className="btn btn-danger btn-sm" onClick={clearAll}>Clear All</button>
+          </div>
+          <div className="canvas-wrap">
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <img
+                ref={imgRef}
+                src={`http://localhost:5000${currentImg.filePath}`}
+                alt={currentImg.fileName}
+                onLoad={onImageLoad}
+                style={{ display: "block", width: imgNaturalSize.w * scale, height: imgNaturalSize.h * scale }}
+              />
+              <canvas
+                ref={canvasRef}
+                style={{ position: "absolute", top: 0, left: 0 }}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel: Boxes */}
+        <div className="panel panel-right">
+          <div className="panel-header">Bounding Boxes ({annotations.length})</div>
+          <div className="panel-body">
+            {annotations.length === 0 ? (
+              <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                No boxes yet. Draw on the image.
+              </div>
+            ) : annotations.map((ann, idx) => {
+              const cls = classes.find(c => c.id === ann.classId);
+              const color = colorForClass(ann.classId);
+              return (
+                <div
+                  key={ann.id}
+                  className={`box-item ${selectedAnnId === ann.id ? "selected" : ""}`}
+                  onClick={() => setSelectedAnnId(ann.id === selectedAnnId ? null : ann.id)}
+                >
+                  <div className="class-dot" style={{ background: color }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>{cls?.className || "?"}</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+                      {Math.round(ann.xMin)},{Math.round(ann.yMin)} · {Math.round(ann.width)}×{Math.round(ann.height)}
+                    </div>
+                  </div>
+                  <span className="box-item-del" onClick={e => { e.stopPropagation(); deleteAnn(ann.id); }}>🗑</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── APP ROOT ──────────────────────────────────────────────────────────────────
+const App = () => {
+  const [token, setToken] = useState(() => localStorage.getItem("lb_token") || "");
+  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem("lb_user") || "null"); } catch { return null; } });
+  const [view, setView] = useState("projects"); // projects | project | annotate
+  const [activeProject, setActiveProject] = useState(null);
+  const [annotateImage, setAnnotateImage] = useState(null);
+  const [annotateImages, setAnnotateImages] = useState([]);
+
+  const onLogin = (t, u) => {
+    setToken(t); setUser(u);
+    localStorage.setItem("lb_token", t);
+    localStorage.setItem("lb_user", JSON.stringify(u));
+  };
+
+  const logout = () => {
+    setToken(""); setUser(null);
+    localStorage.removeItem("lb_token");
+    localStorage.removeItem("lb_user");
+    setView("projects");
+  };
+
+  if (!token) return <AuthPage onLogin={onLogin} />;
+
+  if (view === "annotate" && annotateImage) {
+    return (
+      <AnnotationWorkspace
+        token={token}
+        project={activeProject}
+        initialImage={annotateImage}
+        allImages={annotateImages}
+        onBack={() => setView("project")}
+      />
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      <div className="navbar">
+        <div className="brand">📦 LabelBox</div>
+        <div className="nav-actions">
+          {view === "project" && (
+            <button className="btn btn-outline btn-sm" onClick={() => setView("projects")}>← Projects</button>
+          )}
+          <span style={{ fontSize: 13, color: "var(--muted)" }}>👤 {user?.name}</span>
+          <button className="btn btn-outline btn-sm" onClick={logout}>Logout</button>
+        </div>
+      </div>
+
+      {view === "projects" && (
+        <ProjectsPage
+          token={token}
+          onOpen={p => { setActiveProject(p); setView("project"); }}
+        />
+      )}
+
+      {view === "project" && activeProject && (
+        <ProjectPage
+          token={token}
+          project={activeProject}
+          onBack={() => setView("projects")}
+          onAnnotate={(img, imgs) => {
+            setAnnotateImage(img);
+            setAnnotateImages(imgs);
+            setView("annotate");
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ToastProvider><App /></ToastProvider>
+);
+</script>
+</body>
+</html>
