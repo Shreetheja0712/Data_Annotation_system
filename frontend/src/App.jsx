@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPage from "./pages/ForgotPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProjectPage from "./pages/ProjectPage";
+import AnnotatePage from "./pages/AnnotatePage";
 
 import ProjectModal from "./components/ProjectModal";
 import DeleteModal from "./components/DeleteModal";
@@ -20,7 +21,6 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [projects, setProjects] = useState([]);
-  const [activeProject, setActiveProject] = useState(null);
 
   const [modal, setModal] = useState(null);
   const [error, setError] = useState("");
@@ -29,8 +29,7 @@ export default function App() {
   /* AUTH */
   const handleRegister = ({ name, email, phone, password }) => {
     if (users.find(u => u.email === email)) {
-      setError("Email already registered.");
-      return;
+      setError("Email already registered."); return;
     }
     const user = { id: genId(), name, email, phone, password };
     setUsers(prev => [...prev, user]);
@@ -41,20 +40,13 @@ export default function App() {
 
   const handleLogin = ({ email, password }) => {
     const user = users.find(u => u.email === email && u.password === password);
-    if (!user) {
-      setError("Invalid email or password.");
-      return;
-    }
+    if (!user) { setError("Invalid email or password."); return; }
     setCurrentUser(user);
     setError("");
     navigate("/dashboard");
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setActiveProject(null);
-    navigate("/login");
-  };
+  const handleLogout = () => { setCurrentUser(null); navigate("/login"); };
 
   /* PROJECTS */
   const createProject = (name) => {
@@ -70,18 +62,36 @@ export default function App() {
 
   const deleteProject = (id) => {
     setProjects(prev => prev.filter(p => p.id !== id));
-    if (activeProject?.id === id) setActiveProject(null);
     setModal(null);
   };
 
-  const openProject = (p) => {
-    setActiveProject(p);
-    navigate("/project");
+  /* IMAGES */
+  const addImages = (projectId, files) => {
+    const newImgs = Array.from(files).map(f => ({
+      id: genId(), name: f.name, src: URL.createObjectURL(f), annotations: [],
+    }));
+    setProjects(prev =>
+      prev.map(p => p.id === projectId ? { ...p, images: [...p.images, ...newImgs] } : p)
+    );
+  };
+
+  const deleteImage = (projectId, imageId) => {
+    setProjects(prev =>
+      prev.map(p => p.id === projectId
+        ? { ...p, images: p.images.filter(i => i.id !== imageId) } : p)
+    );
+  };
+
+  const saveAnnotations = (projectId, imageId, annotations) => {
+    setProjects(prev =>
+      prev.map(p => p.id === projectId
+        ? { ...p, images: p.images.map(img => img.id === imageId ? { ...img, annotations } : img) }
+        : p)
+    );
   };
 
   return (
     <>
-      {/* Modals */}
       {modal?.type === "create" && (
         <ProjectModal title="New Project" onSave={createProject} onClose={() => setModal(null)} />
       )}
@@ -94,56 +104,38 @@ export default function App() {
           onConfirm={() => deleteProject(modal.data.id)} onClose={() => setModal(null)} />
       )}
 
-      {/* Routes */}
       <Routes>
-
         <Route path="/" element={<Navigate to="/login" />} />
-
         <Route path="/login" element={
-          <LoginPage
-            error={error}
-            info={info}
-            setError={setError}
-            setInfo={setInfo}
-            onLogin={handleLogin}
-          />
+          <LoginPage error={error} info={info} setError={setError} setInfo={setInfo} onLogin={handleLogin} />
         } />
-
         <Route path="/register" element={
-          <RegisterPage
-            error={error}
-            setError={setError}
-            onRegister={handleRegister}
-          />
+          <RegisterPage error={error} setError={setError} onRegister={handleRegister} />
         } />
-
         <Route path="/forgot" element={<ForgotPage />} />
-
         <Route path="/dashboard" element={
           currentUser ? (
             <DashboardPage
-              user={currentUser}
-              projects={projects}
-              onLogout={handleLogout}
+              user={currentUser} projects={projects} onLogout={handleLogout}
               onCreateProject={() => setModal({ type: "create" })}
               onEditProject={p => setModal({ type: "edit", data: p })}
               onDeleteProject={p => setModal({ type: "delete", data: p })}
-              onOpenProject={openProject}
             />
+          ) : <Navigate to ='/login' />
+        } />
+        <Route path="/project/:projectId" element={
+          currentUser ? (
+            <ProjectPage projects={projects} user={currentUser}
+              onLogout={handleLogout} onAddImages={addImages} onDeleteImage={deleteImage} />
           ) : <Navigate to="/login" />
         } />
-
-        <Route path="/project" element={
-          activeProject ? (
-            <ProjectPage
-              project={activeProject}
-              onBack={() => navigate("/dashboard")}
-              onLogout={handleLogout}
-              user={currentUser}
-            />
-          ) : <Navigate to="/dashboard" />
+        <Route path="/project/:projectId/annotate/:imageId" element={
+          currentUser ? (
+            <AnnotatePage projects={projects} user={currentUser}
+              onLogout={handleLogout} onSaveAnnotations={saveAnnotations} />
+          ) : <Navigate to="/login" />
         } />
-
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </>
   );

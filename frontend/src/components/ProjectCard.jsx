@@ -21,9 +21,9 @@ export default function ProjectCard({ project, onOpen, onEdit, onDelete }) {
       )}
 
       <div className="pc-actions">
-        <button className="btn-sm btn-open" onClick={onOpen}>Open</button>
-        <button className="btn-sm btn-edit" onClick={onEdit}>Edit</button>
-        <button className="btn-sm btn-delete" onClick={onDelete}>Delete</button>
+        <button className="pc-btn pc-btn--open" onClick={onOpen}>Open</button>
+        <button className="pc-btn" onClick={onEdit}>Rename</button>
+        <button className="pc-btn pc-btn--danger" onClick={onDelete}>Delete</button>
       </div>
     </div>
   );
